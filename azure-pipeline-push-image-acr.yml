@@ -3,23 +3,34 @@ trigger:
     include:
       - main
 
-variables:
-  # Variables de entorno
-  ACR_NAME: 'myappdevops' # Colocar el nombre de tu ACR
-  IMAGE_NAME: 'myapp-nginx-s4' # Colocar el Nombre de Imagen
-  SERVICE_CONNECTION_NAME: 'myapps-devops-s4' # Colocar nombre del Service Connection ubicado en Docker Registry-- Azure Container Registry
+pr: none
 
-jobs:
-  - job: BuildAndPush
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-      - task: Docker@2
-        inputs:
-          command: 'buildAndPush'
-          containerRegistry: '$(SERVICE_CONNECTION_NAME)'
-          repository: '$(ACR_NAME).azurecr.io/$(IMAGE_NAME)'
-          dockerfile: '**/Dockerfile'
-          tags: |
-            latest
-        displayName: 'Build and Push Docker Image'
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+- checkout: self
+  clean: true
+
+- task: Docker@2
+  displayName: 'Build y Push de imagen a ACR'
+  inputs:
+    command: 'buildAndPush'
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    repository: '$(imageRepository)'
+    Dockerfile: '$(Build.SourcesDirectory)/docker/Dockerfile'
+    buildContext: '$(Build.SourcesDirectory)/docker'
+    tags: |
+      $(Build.BuildId)
+      latest
+
+- bash: |
+    echo '============================================================'
+    echo ' BUILD Y PUSH FINALIZADO CORRECTAMENTE'
+    echo '============================================================'
+    echo "Repositorio : $(imageRepository)"
+    echo "Build ID    : $(Build.BuildId)"
+    echo "Tags        : $(Build.BuildId), latest"
+    echo '============================================================'
+  displayName: 'Resumen de imagen publicada'
