@@ -8,7 +8,7 @@ variables:
   IMAGE_NAME: 'acr-push-S4'            # Nombre de tu repositorio en ACR
   ACR_NAME: 'rc002AGRUP09S4'           # Nombre del ACR (ojo: revisar mayúsculas)
   ACR_USERNAME: 'rc002AGRUP09S4'       # Usuario del ACR
-  ACR_PASSWORD: '7uLhpFy1Pe3ZBN6ol661E5fLPXFI4luVTGFrLq7Zbln3WRRwEw2WJQQJ99CIACHYHv6Eqg7NAAACAZCR6A2W'
+  ACR_PASSWORD: 'BIIPucaSOQbBorOEcPsGUKPhHDyP96jT4zEjnjqiit9kbevGsu43JQQJ99CIACHYHv6Eqg7NAAACAZCRbL2o'
 
 stages:
   - stage: Deploy
@@ -16,7 +16,7 @@ stages:
       - deployment: DeployToVM
         displayName: 'Deploy to VM'
         environment:
-          name: 'env-002AGRUP09-s4'     # TU ENVIRONMENT REAL
+          name: 'env-semana4'     # TU ENVIRONMENT REAL
           resourceType: VirtualMachine
         strategy:
           runOnce:
