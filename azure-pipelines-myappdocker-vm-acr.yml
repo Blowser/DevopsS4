@@ -4,11 +4,11 @@ trigger:
       - main
 
 variables:
-  VM_IP_PUBLICA: '48.211.160.12'  # Se debe colocar la IP pública de tu máquina virtual
-  IMAGE_NAME: 'myapp-nginx-s4'  # Se debe colocar el Nombre de la imagen que será descargada desde ACR
-  ACR_NAME: 'myappdevops'  # Se debe colocar el Nombre de tu Azure Container Registry (ACR)
-  ACR_USERNAME: 'myappdevops'  # Se debe colocar el Nombre de usuario del ACR
-  ACR_PASSWORD: 'gZd5xvFW9eCE3XG8P8B+mNxPLwqpGaCatRSihhqB9e+ACRBU6USe'  # Se debe colocar la Contraseña del ACR
+  VM_IP_PUBLICA: '20.65.59.224'        # IP pública de tu VM
+  IMAGE_NAME: 'acr-push-S4'            # Nombre de tu repositorio en ACR
+  ACR_NAME: 'rc002AGRUP09S4'           # Nombre del ACR (ojo: revisar mayúsculas)
+  ACR_USERNAME: 'rc002AGRUP09S4'       # Usuario del ACR
+  ACR_PASSWORD: '7uLhpFy1Pe3ZBN6ol661E5fLPXFI4luVTGFrLq7Zbln3WRRwEw2WJQQJ99CIACHYHv6Eqg7NAAACAZCR6A2W'
 
 stages:
   - stage: Deploy
@@ -16,16 +16,17 @@ stages:
       - deployment: DeployToVM
         displayName: 'Deploy to VM'
         environment:
-          name: 'VM-DEVOPS-S4'  # Nombre del entorno configurado en Azure DevOps
-          resourceType: VirtualMachine  # Especifica que se conecta a una máquina virtual
+          name: 'env-002AGRUP09-s4'     # TU ENVIRONMENT REAL
+          resourceType: VirtualMachine
         strategy:
           runOnce:
             deploy:
               steps:
+
                 - script: |
-                    # Verificar e instalar Azure CLI en la máquina virtual
+                    # Verificar e instalar Azure CLI
                     if ! command -v az &> /dev/null; then
-                      echo "Azure CLI no está instalado. Instalando Azure CLI..."
+                      echo "Azure CLI no está instalado. Instalando..."
                       sudo apt-get update && \
                       sudo apt-get install -y curl && \
                       curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && \
@@ -33,13 +34,13 @@ stages:
                     else
                       echo "Azure CLI ya está instalado."
                     fi
-                  displayName: 'Verificar e Instalar Azure CLI'
+                  displayName: 'Instalar Azure CLI'
                   failOnStderr: true
 
                 - script: |
-                    # Verificar e instalar Docker en la máquina virtual
+                    # Verificar e instalar Docker
                     if ! command -v docker &> /dev/null; then
-                      echo "Docker no está instalado. Instalando Docker..."
+                      echo "Docker no está instalado. Instalando..."
                       export DEBIAN_FRONTEND=noninteractive && \
                       sudo apt-get update && \
                       sudo apt-get install -y \
@@ -58,31 +59,30 @@ stages:
                     else
                       echo "Docker ya está instalado."
                     fi
-                  displayName: 'Verificar e Instalar Docker'
+                  displayName: 'Instalar Docker'
                   failOnStderr: true
 
                 - script: |
-                    # Autenticarse en Azure Container Registry utilizando nombre de usuario y contraseña
-                    echo "Autenticándose en Azure Container Registry y ejecutando la imagen Docker..."
-                    echo ${ACR_PASSWORD} | sudo docker login ${ACR_NAME}.azurecr.io -u ${ACR_USERNAME} --password-stdin > /dev/null 2>&1
+                    echo "Autenticándose en ACR..."
+                    echo ${ACR_PASSWORD} | sudo docker login ${ACR_NAME}.azurecr.io -u ${ACR_USERNAME} --password-stdin
 
-                    # Descargar la imagen desde ACR
-                    sudo docker pull ${ACR_NAME}.azurecr.io/${ACR_NAME}.azurecr.io/${IMAGE_NAME}:latest
+                    echo "Descargando imagen desde ACR..."
+                    sudo docker pull ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:latest
 
-                    # Verificar si el contenedor ya está en ejecución
-                    if sudo docker ps -a --format '{{.Names}}' | grep -Eq "^nginx_container\$"; then
-                      echo "El contenedor 'nginx_container' ya existe. Iniciándolo nuevamente..."
-                      sudo docker start nginx_container
-                    else
-                      echo "El contenedor 'nginx_container' no existe. Creándolo y ejecutándolo..."
-                      sudo docker run -d -p 80:80 --name nginx_container ${ACR_NAME}.azurecr.io/${ACR_NAME}.azurecr.io/${IMAGE_NAME}:latest
+                    echo "Verificando contenedor existente..."
+                    if sudo docker ps -a --format '{{.Names}}' | grep -Eq "^nginx_container$"; then
+                      echo "Contenedor existente encontrado. Eliminando..."
+                      sudo docker stop nginx_container || true
+                      sudo docker rm nginx_container || true
                     fi
 
+                    echo "Ejecutando contenedor..."
+                    sudo docker run -d -p 80:80 --name nginx_container ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:latest
+
                     sudo docker ps
-                  displayName: 'Descargar y ejecutar la imagen Nginx desde ACR'
+                  displayName: 'Pull y ejecución de imagen desde ACR'
                   failOnStderr: true
 
                 - script: |
-                    # Mostrar la URL para acceder a Nginx
                     echo "La URL para acceder a Nginx es: http://${VM_IP_PUBLICA}/"
-                  displayName: 'Mostrar URL de la máquina virtual'
+                  displayName: 'Mostrar URL de acceso'
