@@ -1,5 +1,7 @@
 trigger: none
+pr: none
 
+# Encadenamiento: corre cuando termina el pipeline de build
 resources:
   pipelines:
     - pipeline: buildPipeline
@@ -9,62 +11,71 @@ resources:
           include:
             - main
 
+# Variables mínimas necesarias
 variables:
-  vmIpPublica: '20.65.59.224'
-  acrName: 'rc002AGRUPO9S4'
-  acrUsername: 'rc002AGRUPO9S4'
-  acrPassword: 'BIIPucaSOQbBorOEcPsGUKPhHDyP96jT4zEjnjqiit9kbevGsu43JQQJ99CIACHYHv6Eqg7NAAACAZCRbL2o'
-  imageName: 'acr-push-s4'
-  containerName: 'nginx_container'
+  RESOURCE_GROUP: 'grupo9-s4'
+  VM_NAME: 'mv-002A-GRUPO9-video'
+  ACR_NAME: 'rc002AGRUPO9S4'
+  ACR_LOGIN: 'rc002AGRUPO9S4.azurecr.io'
+  IMAGE_REPO: 'acr-push-s4'
+  IMAGE_TAG: 'latest'
+  CONTAINER_NAME: 'nginx_container'
+  HOST_PORT: '80'
+  CONTAINER_PORT: '80'
 
 stages:
-  - stage: Deploy
-    displayName: 'Deploy automático después del build'
-    jobs:
-      - deployment: DeployToVM
-        displayName: 'Deploy to VM'
-        environment:
-          name: 'env-002AGRUP09-s4'
-          resourceType: VirtualMachine
-        strategy:
-          runOnce:
-            deploy:
-              steps:
 
-                - script: |
-                    if ! command -v az &> /dev/null; then
-                      sudo apt-get update && \
-                      sudo apt-get install -y curl && \
-                      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-                    fi
-                  displayName: 'Instalar Azure CLI'
+# ============================================================
+# STAGE 1: BOOTSTRAP VM (Run Command)
+# Instala Docker + Azure CLI dentro de la VM como root
+# ============================================================
+- stage: Bootstrap
+  displayName: 'Preparar VM'
+  jobs:
+    - job: PrepareVM
+      pool:
+        vmImage: ubuntu-latest
 
-                - script: |
-                    if ! command -v docker &> /dev/null; then
-                      export DEBIAN_FRONTEND=noninteractive && \
-                      sudo apt-get update && \
-                      sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
-                      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
-                      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null && \
-                      sudo apt-get update && \
-                      sudo apt-get install -y docker-ce docker-ce-cli containerd.io && \
-                      sudo systemctl enable docker && sudo systemctl start docker
-                    fi
-                  displayName: 'Instalar Docker'
+      steps:
+      - task: AzureCLI@2
+        displayName: 'Instalar Docker y Azure CLI en la VM'
+        inputs:
+          azureSubscription: '$(azureServiceConnection)'
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            echo "Ejecutando bootstrap en la VM..."
 
-                - script: |
-                    echo $(acrPassword) | sudo docker login $(acrName).azurecr.io -u $(acrUsername) --password-stdin
+            az vm run-command invoke \
+              --resource-group $(RESOURCE_GROUP) \
+              --name $(VM_NAME) \
+              --command-id RunShellScript \
+              --scripts "
+                set -e
 
-                    sudo docker pull $(acrName).azurecr.io/$(imageName):latest
+                # Instalar Docker si no existe
+                if ! command -v docker >/dev/null; then
+                  apt-get update
+                  apt-get install -y ca-certificates curl gnupg
 
-                    if sudo docker ps -a --format '{{.Names}}' | grep -Eq "^$(containerName)$"; then
-                      sudo docker stop $(containerName)
-                      sudo docker rm $(containerName)
-                    fi
+                  curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+                    | gpg --dearmor -o /usr/share/keyrings/docker.gpg
 
-                    sudo docker run -d -p 80:80 --name $(containerName) $(acrName).azurecr.io/$(imageName):latest
-                  displayName: 'Pull y Run de la imagen'
+                  echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] \
+                    https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable\" \
+                    > /etc/apt/sources.list.d/docker.list
 
-                - script: |
-                    echo "La URL para acceder a Nginx es: http://$(vmIpPublica)/"
-                  displayName: 'Mostrar URL'
+                  apt-get update
+                  apt-get install -y docker-ce docker-ce-cli containerd.io
+                fi
+
+                systemctl enable --now docker
+
+                # Instalar Azure CLI si no existe
+                if ! command -v az >/dev/null; then
+                  curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+                fi
+
+                echo '__BOOTSTRAP_OK__'
+              " \
+              --query "value[].message"
