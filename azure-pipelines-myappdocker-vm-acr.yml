@@ -7,10 +7,10 @@ trigger:
 # VARIABLES (solo reemplazar aquí)
 # ============================
 variables:
-  vmIpPublica: '48.211.160.12'          # IP pública de tu VM
-  acrName: 'rc002agrupo9s4'             # Nombre del ACR
-  acrUsername: 'rc002agrupo9s4'         # Usuario del ACR
-  acrPassword: 'TU_PASSWORD_ACR'        # Password del ACR
+  vmIpPublica: '20.65.59.224'          # IP pública de tu VM
+  acrName: 'rc002AGRUPO9S4'             # Nombre del ACR
+  acrUsername: 'rc002AGRUPO9S4'         # Usuario del ACR
+  acrPassword: 'BIIPucaSOQbBorOEcPsGUKPhHDyP96jT4zEjnjqiit9kbevGsu43JQQJ99CIACHYHv6Eqg7NAAACAZCRbL2o'        # Password del ACR
   imageName: 'acr-push-s4'              # Nombre REAL de tu imagen en ACR
   containerName: 'nginx_container'      # Nombre del contenedor en la VM
 
