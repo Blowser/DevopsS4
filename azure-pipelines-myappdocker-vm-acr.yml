@@ -7,7 +7,7 @@ trigger:
 # VARIABLES (solo reemplazar aquí)
 # ============================
 variables:
-  vmIpPublica: '20.65.59.224'          # IP pública de tu VM
+  vmIpPublica: '20.65.59.224'          # IP pública de la VM
   acrName: 'rc002AGRUPO9S4'             # Nombre del ACR
   acrUsername: 'rc002AGRUPO9S4'         # Usuario del ACR
   acrPassword: 'BIIPucaSOQbBorOEcPsGUKPhHDyP96jT4zEjnjqiit9kbevGsu43JQQJ99CIACHYHv6Eqg7NAAACAZCRbL2o'        # Password del ACR
