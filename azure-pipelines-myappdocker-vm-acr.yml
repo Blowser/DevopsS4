@@ -1,21 +1,14 @@
-# Este pipeline NO se ejecuta por trigger directo
 trigger: none
 
-# ============================
-# ENCADENAMIENTO
-# ============================
 resources:
   pipelines:
     - pipeline: buildPipeline
-      source: Blowser.DevopsS4        # nombre EXACTO del pipeline de build
+      source: Blowser.DevopsS4
       trigger:
         branches:
           include:
             - main
 
-# ============================
-# VARIABLES
-# ============================
 variables:
   vmIpPublica: '20.65.59.224'
   acrName: 'rc002AGRUPO9S4'
